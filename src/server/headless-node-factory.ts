@@ -36,6 +36,7 @@ import {
   type BuiltinAgentId
 } from '../shared/agents/config'
 import { assembleLaunchCommand } from '../shared/agents/launch'
+import { resolveAgentConfig } from '../shared/agents/custom-agent'
 import type { AgentState, NormalizedAgentEvent } from '../shared/agents/normalize'
 import { oneLine } from '../shared/one-line'
 import { RUN_NOW_AFTER_REFUSAL, runNowRequested } from '../shared/control-verbs'
@@ -239,7 +240,7 @@ const H_GAP = 80
 const V_GAP = 36
 const GROUP_PAD = 28
 const GROUP_HEADER = 34
-const SERVER_AGENTS: ReadonlySet<string> = new Set(['claude', 'codex', 'gemini'])
+const SERVER_AGENTS: ReadonlySet<string> = new Set(['claude', 'codex', 'gemini', 'antigravity'])
 
 function token(): string {
   return randomBytes(4).toString('hex')
@@ -1527,10 +1528,23 @@ export class HeadlessNodeFactory {
       const caps = verb === 'open-agent' ? await this.deps.cliCaps() : null
       const grokCaps = verb === 'open-agent' ? await this.deps.grokCaps() : null
       const agentId = args.agent as BuiltinAgentId | undefined
-      if (verb === 'open-agent' && (!agentId || !SERVER_AGENTS.has(agentId))) {
+      // A custom agent (`custom:<id>` from Settings → Custom agents) is accepted when it is built on
+      // a harness this edition launches; its launch line comes from the same shared assembler.
+      const customAgent =
+        verb === 'open-agent' && agentId?.startsWith('custom:')
+          ? settings.customAgents.find((c) => c.id === agentId)
+          : undefined
+      if (
+        verb === 'open-agent' &&
+        (!agentId ||
+          (agentId.startsWith('custom:')
+            ? !customAgent?.baseAgent || !SERVER_AGENTS.has(customAgent.baseAgent)
+            : !SERVER_AGENTS.has(agentId)))
+      ) {
         return {
           ok: false,
-          error: 'open-agent: Server Edition v1 supports --agent claude|codex|gemini'
+          error:
+            'open-agent: Server Edition supports --agent claude|codex|gemini|antigravity, or a custom agent built on one of them'
         }
       }
       // The Server shell owns the same shared Codex app-server spine as desktop. Ask its boot-time
@@ -1582,14 +1596,16 @@ export class HeadlessNodeFactory {
         let mintedSessionId: string | undefined
         let permissionMode
         if (verb === 'open-agent') {
-          const config = AGENT_CONFIG[agentId as BuiltinAgentId]
+          const config = customAgent
+            ? resolveAgentConfig(agentId as AgentId, customAgent)
+            : AGENT_CONFIG[agentId as BuiltinAgentId]
           title = config.label
           color = config.color
           const resolvedMode = resolvePermissionMode(target, settings)
           permissionMode = agentId === 'claude'
             ? gatePermissionMode(resolvedMode, caps?.autoPermissionMode === true)
             : resolvedMode
-          const sessionIdFlagSupported = supportsSessionIdFlag(
+          const sessionIdFlagSupported = !customAgent && supportsSessionIdFlag(
             agentId as AgentId,
             caps?.sessionIdFlag === true,
             grokCaps?.sessionIdFlag === true
@@ -1598,6 +1614,7 @@ export class HeadlessNodeFactory {
           command = assembleLaunchCommand(
             {
               agentId: agentId as AgentId,
+              customAgent,
               // An issue-bound session's first prompt is the REFERENCE line, never the issue's text.
               initialPrompt: issueRef ? issueLaunchPrompt(issueRef, args.prompt) : args.prompt,
               permissionMode,

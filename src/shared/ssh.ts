@@ -341,7 +341,7 @@ set -g status off
 set -g mouse on
 set -g history-limit ${Math.max(1000, scrollback)}
 set -g default-terminal "xterm-256color"
-set -sg escape-time 10
+set -sg escape-time 100
 set -g destroy-unattached off
 setw -g aggressive-resize on
 # Credentials travel HERE, not on argv: over SSH the gateway/custom env is sourced from a 0600

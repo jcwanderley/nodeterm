@@ -1570,6 +1570,15 @@ describe('HeadlessNodeFactory', () => {
     expect(published.filter((node) => node.id === id)).toHaveLength(2)
   })
 
+  it('opens Antigravity (the Gemini harness for personal accounts) with its interactive prompt flag', async () => {
+    const reply = await factory.openAgent('term-source', { agent: 'antigravity', prompt: 'pesquise' }, true)
+    expect(reply.ok).toBe(true)
+    const id = (reply.result as { id: string }).id
+    expect(pty.sends.at(-1)?.text).toMatch(/^agy .*--prompt-interactive 'pesquise'/)
+    const node = (await store.load({ sideline: false })).projects[0].nodes.find((n) => n.id === id)
+    expect(node).toMatchObject({ agentId: 'antigravity', title: 'Antigravity' })
+  })
+
   it('refuses a non-v1 agent before a node or PTY is created', async () => {
     const reply = await factory.openAgent('term-source', { agent: 'grok' }, true)
     expect(reply).toMatchObject({ ok: false, error: expect.stringContaining('claude|codex|gemini') })

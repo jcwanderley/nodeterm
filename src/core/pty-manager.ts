@@ -440,7 +440,9 @@ set -g status off
 set -g mouse on
 set -g history-limit ${Math.max(1000, scrollback)}
 set -g default-terminal "xterm-256color"
-set -sg escape-time 10
+# 100 ms, not 10: through an SSH tunnel the browser's answer to a device-attributes query can arrive split;
+# at 10 ms tmux takes the leading ESC as a lone Escape key and types the rest ("1;2c0;276;0c") into the shell.
+set -sg escape-time 100
 set -g destroy-unattached off
 setw -g aggressive-resize on
 # Credentials travel HERE, not on argv: gateway env vars ride the tmux client's process
