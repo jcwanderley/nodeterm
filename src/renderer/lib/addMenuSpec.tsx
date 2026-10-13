@@ -67,6 +67,7 @@ export type AddItem =
   | { kind: 'open-file' }
   | { kind: 'new-file' } // requiresCwd
   | { kind: 'spawn-team' }
+  | { kind: 'dispatch' }
   | { kind: 'worktree' } // disabledOnSsh
 
 /**
@@ -89,6 +90,7 @@ export const CONTENT_ADD_ITEMS: readonly AddItem[] = [
   { kind: 'open-file' },
   { kind: 'new-file' },
   { kind: 'spawn-team' },
+  { kind: 'dispatch' },
   { kind: 'worktree' }
 ] as const
 
@@ -127,6 +129,8 @@ export interface AddHandlers {
   newFile: (at?: AddPos) => void
   /** Opens the Spawn-a-team dialog (issue #78); `at` is where the conductor node will land. */
   spawnTeam: (at?: AddPos) => void
+  /** Opens the "Despachar tarefa…" dialog (@shared/dispatch); `at` is where the agent will land. */
+  dispatch?: (at?: AddPos) => void
   worktree: (at?: AddPos) => void
 }
 
@@ -242,6 +246,12 @@ export function contentAddItemsToMenuItems(
       case 'spawn-team':
         out.push({ label: 'Spawn a team…', icon: <IconGroup />, onClick: () => handlers.spawnTeam(at) })
         break
+      case 'dispatch':
+        if (handlers.dispatch) {
+          const open = handlers.dispatch
+          out.push({ label: 'Despachar tarefa…', icon: <IconAgent />, onClick: () => open(at) })
+        }
+        break
       case 'worktree':
         out.push({
           label: 'New worktree…',
@@ -347,6 +357,12 @@ export function contentAddItemsToDockRows(
       case 'spawn-team':
         out.push({ kind: 'spawn-team', label: 'Spawn a team…', icon: <IconGroup />, onClick: () => handlers.spawnTeam() })
         break
+      case 'dispatch':
+        if (handlers.dispatch) {
+          const open = handlers.dispatch
+          out.push({ kind: 'dispatch', label: 'Despachar tarefa…', icon: <IconAgent />, onClick: () => open() })
+        }
+        break
       case 'worktree':
         out.push({
           kind: 'worktree',
@@ -406,6 +422,7 @@ export const ADD_ITEM_GROUP: Record<AddItem['kind'], AddGroupId> = {
   'open-file': 'files',
   'new-file': 'files',
   'spawn-team': 'orchestrate',
+  dispatch: 'top',
   trigger: 'orchestrate',
   worktree: 'orchestrate'
 }

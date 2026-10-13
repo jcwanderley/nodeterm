@@ -2,6 +2,7 @@ import type { ChatPromptResult, TextDeliveryResult } from './text-delivery'
 import type { PushWebhookMinted, PushWebhookResult, PushWebhookTokenInfo } from './push-webhook'
 import type { IdentitySeedEntry } from './agent-identity-seed'
 import type { PrWaitHold } from './pr-wait'
+import type { DispatchRoutes } from './dispatch'
 import type { SessionBackend } from './session-backend'
 import type { AgentIntegrationsSettings } from './agent-integrations'
 // Types shared across the main, preload, and renderer processes.
@@ -2350,6 +2351,10 @@ export interface Settings {
    *  and absent from DEFAULT_SETTINGS — means off everywhere. Read through
    *  `sanitizeBoardDispatch`: settings.json is hand-editable. */
   boardDispatch?: BoardDispatch
+  /** Machine-local model dispatcher (@shared/dispatch): which agent each tier (leve / médio / pesado)
+   *  opens from "Despachar tarefa…". Absent = the defaults (`defaultDispatchRoutes`). Read through
+   *  `sanitizeDispatchRoutes`: settings.json is hand-editable. */
+  dispatchRoutes?: DispatchRoutes
 }
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -158,6 +158,7 @@ import {
   IconGrid,
   IconLineage,
   IconGroup,
+  IconAgent,
   IconJump,
   IconKanban,
   IconLock,
@@ -291,6 +292,8 @@ import {
 import { RemotePicker } from '../components/RemotePicker'
 import { WorktreeDialog } from '../components/WorktreeDialog'
 import { SpawnTeamDialog } from '../components/SpawnTeamDialog'
+import { DispatchDialog, type DispatchAgentOption } from '../components/DispatchDialog'
+import { dispatchPrompt, resolveDispatchRoutes, sanitizeDispatchRoutes, type DispatchTier } from '@shared/dispatch'
 import { conductorPrompt } from '../lib/spawnTeamPrompt'
 import { NotifyConsentDialog } from '../components/NotifyConsentDialog'
 import { SessionsSidebar } from '../components/SessionsSidebar'
@@ -6601,6 +6604,40 @@ export function Canvas() {
     [addAgentNode, spawnTeamDialog]
   )
 
+  // "Despachar tarefa…" (@shared/dispatch): the dialog proposes a tier and the agent mapped to it;
+  // this opens that agent pre-prompted with the task. "Remember" saves the pick as the tier default.
+  const [dispatchDialog, setDispatchDialog] = useState<{ at?: { x: number; y: number } } | null>(null)
+  const dispatchAgents = useCallback((): DispatchAgentOption[] => {
+    const settings = useSettings.getState().settings
+    const disabled = settings.disabledAgents
+    return [
+      ...BUILTIN_AGENT_IDS.filter((aid) => !disabled.includes(aid)).map((aid) => ({
+        id: aid,
+        label: AGENT_CONFIG[aid].label
+      })),
+      ...settings.customAgents
+        .filter((c) => !disabled.includes(c.id))
+        .map((c) => ({ id: c.id, label: c.label || c.id }))
+    ]
+  }, [])
+  const dispatchRoutesNow = useCallback(() => {
+    const settings = useSettings.getState().settings
+    const known = new Set<string>([...BUILTIN_AGENT_IDS, ...settings.customAgents.map((c) => c.id)])
+    return resolveDispatchRoutes(sanitizeDispatchRoutes(settings.dispatchRoutes), settings.customAgents, known)
+  }, [])
+  const dispatchTask = useCallback(
+    (v: { task: string; tier: DispatchTier; agentId: string; remember: boolean }) => {
+      const at = dispatchDialog?.at
+      setDispatchDialog(null)
+      if (v.remember) {
+        const saved = sanitizeDispatchRoutes(useSettings.getState().settings.dispatchRoutes) ?? {}
+        useSettings.getState().update({ dispatchRoutes: { ...saved, [v.tier]: v.agentId } })
+      }
+      addAgentNode(v.agentId, at, undefined, undefined, dispatchPrompt(v.task, v.tier))
+    },
+    [addAgentNode, dispatchDialog]
+  )
+
   // Open a terminal node that ssh's into a saved server. `screenPos` (a pane/dock cursor) is
   // converted to a flow position; otherwise the node lands at the view center. The new node is
   // selected (and others deselected) so it's the active focus right away.
@@ -10838,6 +10875,7 @@ export function Canvas() {
       openFile: (at) => void openFileDialog(at),
       newFile: (at) => void newProjectFile(at),
       spawnTeam: (at) => setSpawnTeamDialog({ at }),
+      dispatch: (at) => setDispatchDialog({ at }),
       worktree: (at) => openWorktreeDialog(null, at)
     }),
     [
@@ -18076,6 +18114,13 @@ export function Canvas() {
         icon: <IconGroup />,
         run: () => setSpawnTeamDialog({})
       },
+      {
+        id: 'dispatch-task',
+        label: 'Despachar tarefa…',
+        hint: 'dispatch route model router delegate gemini antigravity despachante',
+        icon: <IconAgent />,
+        run: () => setDispatchDialog({})
+      },
       { id: 'new-project', label: 'New project', icon: <IconProject />, run: () => addProject() },
       { id: 'clone-repo', label: 'Clone repository…', icon: <IconProject />, run: () => setCloneDialogOpen(true) },
       {
@@ -19525,6 +19570,15 @@ export function Canvas() {
             setWorktreeDialog(null)
             setWorktreeError(null)
           }}
+        />
+      )}
+
+      {dispatchDialog && (
+        <DispatchDialog
+          agents={dispatchAgents()}
+          routes={dispatchRoutesNow()}
+          onSubmit={dispatchTask}
+          onCancel={() => setDispatchDialog(null)}
         />
       )}
 

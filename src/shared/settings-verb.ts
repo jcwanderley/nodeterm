@@ -148,6 +148,8 @@ export const SETTINGS_VERB_FORBIDDEN = new Set<keyof Settings | keyof Project>([
   'modelGatewayDefaultModel',
   'agentLaunchCommands',
   'customAgents',
+  // The dispatcher's tier → agent map decides which agent (and subscription) a task runs on.
+  'dispatchRoutes',
   'commitAgentCommand',
   'defaultShell',
   // The machine default for messaging: a grant over EVERY project on this machine at once, cloned

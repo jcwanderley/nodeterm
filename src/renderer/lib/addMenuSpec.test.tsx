@@ -53,6 +53,7 @@ const allKinds: AddItem['kind'][] = [
   'open-file',
   'new-file',
   'spawn-team',
+  'dispatch',
   'worktree'
 ]
 
