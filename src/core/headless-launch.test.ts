@@ -92,7 +92,7 @@ describe('launchHeadless (#925)', () => {
     const p = launchHeadless(deps, req({ requirePersistent: false }))
     await vi.advanceTimersByTimeAsync(SETTLE_CAP_MS)
     expect(await p).toEqual({ outcome: 'delivered', fresh: true })
-    expect(writes).toEqual([CMD, '\r'])
+    expect(writes).toEqual([KILL_LINE, CMD, '\r'])
     expect(deps.paneCommand).not.toHaveBeenCalled()
   })
 
@@ -106,7 +106,7 @@ describe('launchHeadless (#925)', () => {
     expect(writes).toEqual([])
     await vi.advanceTimersByTimeAsync(1)
     expect(await p).toEqual({ outcome: 'delivered', fresh: true })
-    expect(writes).toEqual([CMD, '\r'])
+    expect(writes).toEqual([KILL_LINE, CMD, '\r'])
     expect(deps.paneCommand).not.toHaveBeenCalled()
   })
 
@@ -134,7 +134,7 @@ describe('launchHeadless (#925)', () => {
     expect(writes).toEqual([])
     await vi.advanceTimersByTimeAsync(1)
     expect(await p).toEqual({ outcome: 'delivered', fresh: true })
-    expect(writes).toEqual([CMD, '\r'])
+    expect(writes).toEqual([KILL_LINE, CMD, '\r'])
     // A fresh TMUX pane is still probed (it answers exactly, and covers the new-session -A race).
     expect(deps.paneCommand).toHaveBeenCalledWith('n1')
     expect(deps.releaseHeadless).toHaveBeenCalledWith('n1')
@@ -174,7 +174,7 @@ describe('launchHeadless (#925)', () => {
     expect(tapsAtProbe).toBe(0)
     clearInterval(painter)
     expect(await p).toEqual({ outcome: 'delivered', fresh: true })
-    expect(writes).toEqual([CMD, '\r'])
+    expect(writes).toEqual([KILL_LINE, CMD, '\r'])
     expect(listeners.size).toBe(0)
     // No settle timer (quiet window or ceiling) outlives the launch.
     expect(vi.getTimerCount()).toBe(0)
@@ -221,7 +221,7 @@ describe('launchHeadless (#925)', () => {
       throw new Error('session gone')
     })
     expect(await launchHeadless(deps, req())).toEqual({ outcome: 'failed', reason: 'cancelled', fresh: true })
-    expect(writes).toEqual([])
+    expect(writes).toEqual([KILL_LINE]) // only the harmless line-clear, never the command
     expect(vi.getTimerCount()).toBe(0)
   })
 

@@ -110,7 +110,10 @@ export async function launchHeadless(
       if (!isLaunchShell(pane)) return { outcome: 'failed', reason: 'no-shell', fresh }
     }
     const killLine = shellKillLineSequence(undefined, req.ptyOptions.shell)
-    const outcome = await deliver(deps, key, req.command, killLine, !fresh)
+    // Kill the line first on a FRESH shell too: a browser viewer's answer to the tmux client's
+    // device-attributes query can land on the new prompt as text ("1;2c0;276;0c") when it arrives
+    // late through a tunnel, and the launch line typed after it would run as one broken command.
+    const outcome = await deliver(deps, key, req.command, killLine, true)
     return outcome === 'submitted'
       ? { outcome: 'delivered', fresh }
       : { outcome: 'failed', reason: outcome, fresh }
